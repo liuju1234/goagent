@@ -1278,6 +1278,10 @@ class Common(object):
         self.LISTEN_VISIBLE = self.CONFIG.getint('listen', 'visible')
         self.LISTEN_DEBUGINFO = self.CONFIG.getint('listen', 'debuginfo')
 
+        self.DIRECT_ENABLE = self.CONFIG.getint('direct', 'enable')
+        self.DIRECT_IP = self.CONFIG.get('direct', 'ip')
+        self.DIRECT_PORT = self.CONFIG.getint('direct', 'port')
+
         self.GAE_ENABLE = self.CONFIG.getint('gae', 'enable')
         self.GAE_APPIDS = re.findall(r'[\w\-\.]+', self.CONFIG.get('gae', 'appid').replace('.appspot.com', ''))
         self.GAE_PASSWORD = self.CONFIG.get('gae', 'password').strip()
@@ -1600,6 +1604,11 @@ def pre_start():
     if common.LISTEN_USERNAME:
         GAEProxyHandler.handler_filters.insert(0, AuthFilter(common.LISTEN_USERNAME, common.LISTEN_PASSWORD))
 
+class DirectProxyHandler(SimpleProxyHandler):
+    """Direct Proxy Handler"""
+
+    def __init__(self, *args, **kwargs):
+        SimpleProxyHandler.__init__(self, *args, **kwargs)
 
 def main():
     global __file__
@@ -1610,6 +1619,11 @@ def main():
     logging.basicConfig(level=logging.DEBUG if common.LISTEN_DEBUGINFO else logging.INFO, format='%(levelname)s - %(asctime)s %(message)s', datefmt='[%b %d %H:%M:%S]')
     pre_start()
     sys.stderr.write(common.summary())
+
+    if common.DIRECT_ENABLE:
+        if common.PROXY_ENABLE:
+            DirectProxyHandler.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWROD)
+        thread.start_new_thread(LocalProxyServer((common.DIRECT_IP, common.DIRECT_PORT), DirectProxyHandler).serve_forever, tuple())
 
     if common.PAC_ENABLE:
         thread.start_new_thread(LocalProxyServer((common.PAC_IP, common.PAC_PORT), PACProxyHandler).serve_forever, tuple())

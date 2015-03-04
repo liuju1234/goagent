@@ -1488,6 +1488,8 @@ class Net2(object):
                               'X-Chrome-Variations',
                               'Connection',
                               'Cache-Control'])
+    def __init__(self):
+        self.connect_timeout = 4
 
     def getaliasbyname(self, name):
         return None
